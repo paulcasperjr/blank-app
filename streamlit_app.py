@@ -1,51 +1,100 @@
 import streamlit as st
-import pandas as pd
 
-# 1. Your Master List (categorized)
+# The Full Master List Categorized
 MASTER_DATA = {
-    "Protein": ["Salmon", "Ham", "Yogurt", "Whey", "Mozz", "Tofu", "Chicken Patty", "Tofurkey", "Black Bean Burgers"],
-    "Veggies": ["Sweet Potato", "Broccoli", "Carrots", "Red Onion", "Garlic", "Spinach", "Cilantro", "Mushrooms"],
-    "Carbs": ["Rice", "Couscous", "Popcorn", "Bread", "Waffles", "Pancake Mix", "Pasta", "Pizza Dough"],
-    "Beverages": ["Oat Milk", "Almond Milk", "Orange Juice", "Seltzer", "Coffee Creamer"],
-    "Bathroom/Home": ["Paper Towel", "Toilet Paper", "Hand Soap", "Toothpaste", "Lysol"]
+    "Protein": [
+        "Chicken (thighs/breasts/Kevins)", "Salmon", "Shrimp", "Eggs", "Ham", 
+        "Yogurt", "Whey", "Mozz", "Tofu", "Chicken patty", "Tofurkey sausage", 
+        "Breakfast sausage", "Black bean burgers", "Beyond burgers", "Peanut butter", "Broth"
+    ],
+    "Veggies": [
+        "Sweet potato", "Broccoli", "Brussels sprouts", "Carrots", "Red onion", 
+        "White onion", "Garlic", "Red bell pepper", "Green bell pepper", "Jalapeño", 
+        "Spinach", "Frozen spinach", "Celery", "Arugula", "Avocados", "Cucumber", 
+        "Tomato", "Cilantro", "Parsley", "Romaine", "Cabbage", "Salad mix", 
+        "Stir fry mix", "Slaw", "Mushrooms", "Chia/Walnuts/Peanuts", 
+        "Pepitas/Sunflower seeds", "Pickles", "Basil/Pesto"
+    ],
+    "Fruits": [
+        "Lemon", "Lime", "Kiwi", "Bananas", "Strawberry/Blueberry", 
+        "Apple (Granny Smith)", "Nectarine", "Pear", "Clementines"
+    ],
+    "Cans": [
+        "Black beans", "Kidney beans", "Garbanzo", "Chili beans", 
+        "Chipotle in adobo", "Corn", "Tomatoes for sauce", "Pizza sauce"
+    ],
+    "Carbs": [
+        "Rice (Basmati/Jasmine)", "Couscous/Faro", "Popcorn kernels", "Potato", 
+        "Bread", "Burger buns", "Waffles", "Pancake mix (protein)", "Granola", 
+        "Oats", "Cereal (Life/Cheerios)", "Pasta", "Low-carb wraps", 
+        "Tofu noodles", "Pizza dough"
+    ],
+    "Beverages": [
+        "Oat milk", "Almond milk", "Orange juice", "Whole milk", 
+        "Coconut milk/cream", "Seltzer", "Seltzer tank", "Coffee creamer"
+    ],
+    "Complete Meals": [
+        "Pizza", "Noodle bowls", "Sushi", "Salads", "Hoagies", "Frozen lunch/dinners"
+    ],
+    "Condiments": [
+        "Horseradish", "Spicy mustard", "BBQ", "Ketchup", "Olive oil", 
+        "Tahini", "Peppercorns", "Jelly/jam", "Everything spice", 
+        "Taco seasoning", "Curry paste", "Pesto/basil"
+    ],
+    "Bathroom": [
+        "Paper Towel", "Toilet Paper", "Hand soap", "Conditioner/Shampoo", 
+        "Cleaning Supplies (Lysol)", "Toothpaste", "Floss", "Gum", "Lotion", "Dry shampoo"
+    ]
 }
 
-st.set_page_config(page_title="Our Shared List", layout="centered")
+st.set_page_config(page_title="Household Grocery Hub", page_icon="🛒")
 
-# 2. Shared Sync Logic
-# (For a simple setup, we'll use Streamlit's cache or a persistent file)
-if 'needs' not in st.session_state:
-    st.session_state.needs = []
+# Title and Mode Selection
+st.title("🛒 Grocery Mission Control")
+mode = st.radio("Switch View:", ["Planning (Build List)", "Shopping (Store Mode)"], horizontal=True)
 
-st.title("🛒 The Household Hub")
+st.divider()
 
-tab1, tab2 = st.tabs(["📝 Add to List", "🏃 Store Mode"])
+# Initialize session state for the shopping list if it doesn't exist
+if 'shopping_list' not in st.session_state:
+    st.session_state.shopping_list = []
 
-with tab1:
-    st.subheader("What do we need?")
+# --- PLANNING MODE ---
+if mode == "Planning (Build List)":
+    st.subheader("Tap items we are low on:")
+    
     for category, items in MASTER_DATA.items():
         with st.expander(f"{category}"):
             for item in items:
-                # If she checks it, it gets added to the shared 'needs' list
-                is_needed = st.checkbox(item, key=f"check_{item}")
-                if is_needed and item not in st.session_state.needs:
-                    st.session_state.needs.append(item)
-                elif not is_needed and item in st.session_state.needs:
-                    st.session_state.needs.remove(item)
+                # Check if item is already in the list
+                is_checked = item in st.session_state.shopping_list
+                
+                if st.checkbox(item, value=is_checked, key=f"plan_{category}_{item}"):
+                    if item not in st.session_state.shopping_list:
+                        st.session_state.shopping_list.append(item)
+                else:
+                    if item in st.session_state.shopping_list:
+                        st.session_state.shopping_list.remove(item)
 
-with tab2:
-    st.subheader("Ready to Shop")
-    if not st.session_state.needs:
-        st.write("List is empty. Add things in the first tab!")
+# --- SHOPPING MODE ---
+else:
+    st.subheader("📍 Clean Shopping List")
+    
+    if not st.session_state.shopping_list:
+        st.info("Nothing selected! Go to Planning mode to add items.")
     else:
-        # Show ONLY the items selected, grouped by their original category
+        # We iterate through MASTER_DATA to maintain the correct store order
         for category, items in MASTER_DATA.items():
-            matching_items = [i for i in items if i in st.session_state.needs]
-            if matching_items:
-                st.info(f"**{category}**")
-                for match in matching_items:
-                    st.write(f"☐ {match}")
+            # Find which items from this category are in the shopping list
+            needed_here = [i for i in items if i in st.session_state.shopping_list]
+            
+            if needed_here:
+                st.markdown(f"### {category}")
+                for item in needed_here:
+                    st.checkbox(f"**{item}**", key=f"shop_{item}")
         
-        if st.button("Clear Everything (Trip Done)"):
-            st.session_state.needs = []
+        st.divider()
+        if st.button("Clear Finished Trip"):
+            st.session_state.shopping_list = []
             st.rerun()
+
